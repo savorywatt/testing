@@ -1,17 +1,3 @@
-"""
-1. train
-
-    take incoming data
-    extract weights and expected class
-    classify based on weights
-    confirm if classifed == expected class
-    if not then we adjust our weights
-
-4. classify
-
-
-2. test 3. load
-"""
 from random import random
 from random import shuffle
 
