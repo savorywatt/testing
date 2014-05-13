@@ -29,7 +29,7 @@ class Perceptron(object):
         features.
         """
 
-        response = 0
+        response = 0.0
         for key, value in self.weights.iteritems():
 
             vector_value = features.get(key)
@@ -203,7 +203,7 @@ def test_vote():
 
     data, features = parse_vote_file()
 
-    #shuffle(data)
+    shuffle(data)
 
     offset = len(data) - int(len(data) * 0.9)
     train_data = data[:len(data) - offset]
@@ -217,7 +217,7 @@ def test_vote():
     for x in xrange(10):
         train_test = train_data
         shuffle(train_test)
-        trial = test(features, train_data, train_data)
+        trial = test(features, train_data, train_test)
         best_accuracy = max(trial.accuracy, best_accuracy)
 
         if trial.accuracy == best_accuracy:
