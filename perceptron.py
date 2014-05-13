@@ -25,47 +25,45 @@ class Perceptron(object):
         self.weights = {weight_key: random()
                         for weight_key in weight_keys}
         self.threshold = random()
-        #self.threshold = 0.07
         self.learning_rate = random()
         self.epochs = 0
 
-    def update_weights(self, input_values, error):
-#        print 'error in:', error
+    def update_weights(self, features, error):
+        """Update weights for the incoming features based on error"""
+
         for key, value in self.weights.iteritems():
-            vector_value = input_values.get(key)
+            vector_value = features.get(key)
 
             if vector_value:
-                correction = self.learning_rate * float(error) * float(vector_value)
-#                print 'rate', self.learning_rate
-#                print 'error:', error
-#                print 'value:', value
-#                print 'new value:', vector_value
-#                print 'correction:', correction
-#                print '++++++++++++++++++++++++++++'
+                correction = (self.learning_rate * error * float(vector_value))
                 self.weights[key] = correction
 
-    def weight_response(self, input_values):
+    def score(self, features):
+        """Based on passed in features find the dot product of any matching
+        features.
+        """
 
         response = 0
         for key, value in self.weights.iteritems():
 
-            vector_value = input_values.get(key)
+            vector_value = features.get(key)
             if vector_value:
                 response += vector_value * value
 
-        #print 'weight response:', response
         return response
 
-    def response(self, input_values):
-        weight_response = self.weight_response(input_values)
+    def classify(self, features):
+        """Classify using the score and threshold."""
 
-        if weight_response >= self.threshold:
+        score = self.score(features)
+
+        if score >= self.threshold:
             return 1
         return -1
 
     def train(self, data):
-        """
-        data = list of {} with each dict having a 'class' key
+        """Based on the data learn the features by adjusting weights when
+        the perceptron incorrectly classifies a peice of training data.
         """
 
         epochs = 0
@@ -77,38 +75,30 @@ class Perceptron(object):
         while learning:
 
             epoch_correct = 0
-            for value in data:
-                response = self.response(value)
+            for features in data:
+                response = self.classify(features)
 
-                expected = value.get('class')
-                #print 'response:', response
-                #print 'expected:', expected
-                #print 'value:', value
-                error = expected - response
+                expected = features.get('class')
+
+                error = float(expected - response)
                 if expected != response:
                     learned += 1
-                    self.update_weights(value, error)
+                    self.update_weights(features, error)
                     train_error += abs(error)
                 else:
                     correct += 1
                     epoch_correct += 1
-                #print 'current_weights:', self.weights
-                #print 'error:', error
 
-            print 'accuracy: ', str((float(epoch_correct) / float(len(data))) * 100)
-            print 'cor:', epoch_correct
-            print 'total:', len(data)
             epochs += 1
-            print '---------------------'
+
             if epochs >= MAX_EPOCHS or train_error == 0.0:
                 learning = False
-        print 'train:correctly guessed:', correct
         self.epochs = epochs
 
-        print 'data learned on:', len(data)
-        print 'made %d mistakes' % learned
-
     def test(self, data):
+        """Used to report and record statistics for how accurate the perceptron
+        was at classifying the new data set.
+        """
 
         total = len(data)
         correct = 0
@@ -116,7 +106,7 @@ class Perceptron(object):
 
         for datum in data:
 
-            response = self.response(datum)
+            response = self.classify(datum)
 
             expected = datum.get('class')
 
@@ -174,18 +164,16 @@ def test_random(num):
 def test(features, train_data, test_data):
 
     perceptron = Perceptron(features)
-    print 'start weights:', perceptron.weights
     perceptron.train(train_data)
-    print 'trained weights:', perceptron.weights
     perceptron.test(test_data)
 
     return perceptron
 
 
-def test_vote():
+def parse_vote_file():
+    """Read the csv file and turn it into weights and appropriate tags"""
 
     file_name = 'house-votes-84.data.txt'
-
     data = []
     features = []
 
@@ -219,29 +207,41 @@ def test_vote():
                     datum[i] = value
 
             data.append(datum)
-    shuffle(data)
-    print 'data sample is:', len(data)
+
+    return data, features
+
+
+def test_vote():
+    """Test the vote data using multiple trials to try and find the 'best'
+    perceptron to test with."""
+
+    data, features = parse_vote_file()
+
+    #shuffle(data)
+
     offset = len(data) - int(len(data) * 0.9)
-    print 'offset:', offset
     train_data = data[:len(data) - offset]
     test_data = data[len(data) - offset:]
 
-    #train_data = data[:10]
-    #test_data = data[11:21]
+    print 'training %d testing %d' % (len(train_data), len(test_data))
 
-    print 'training %d votes, testing %d votes' % (len(train_data), len(test_data))
     best = None
     best_accuracy = 0.0
     accuracies = []
     for x in xrange(10):
-        trial = test(features, train_data, shuffle(train_data))
+        train_test = train_data
+        shuffle(train_test)
+        trial = test(features, train_data, train_data)
         best_accuracy = max(trial.accuracy, best_accuracy)
 
         if trial.accuracy == best_accuracy:
             best = trial
 
         accuracies.append(trial.accuracy)
-
+    print '-----------------------------------------------------'
+    print 'final against real test data'
     best.test(test_data)
 
+    # This is to look at overfitting and to eventually see if a highly accurate
+    # trained perceptron does the best on the tests
     print 'accuracies:', accuracies
