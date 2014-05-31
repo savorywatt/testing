@@ -13,6 +13,8 @@ class Perceptron(object):
         self.threshold = random()
         self.learning_rate = random()
         self.epochs = 0
+        self.count = 0
+        self.edges = {weight_key: 0.0 for weight_key in weight_keys}
 
     def update_weights(self, features, error):
         """Update weights for the incoming features based on error"""
@@ -23,6 +25,16 @@ class Perceptron(object):
             if vector_value:
                 correction = (self.learning_rate * error * float(vector_value))
                 self.weights[key] = correction
+
+        self.average()
+
+    def average(self):
+
+        for feature, count in self.edges.iteritems():
+
+            self.weights[feature] = (self.count * self.weights[feature] + count) / (count + 1)
+
+        self.count += 1
 
     def score(self, features):
         """Based on passed in features find the dot product of any matching
@@ -69,6 +81,11 @@ class Perceptron(object):
                 error = float(expected - response)
                 if expected != response:
                     learned += 1
+
+                    for feature in features:
+                        if feature in self.edges.iterkeys():
+                            self.edges[feature] += 1
+
                     self.update_weights(features, error)
                     train_error += abs(error)
                 else:
@@ -231,3 +248,8 @@ def test_vote():
     # This is to look at overfitting and to eventually see if a highly accurate
     # trained perceptron does the best on the tests
     print 'accuracies:', accuracies
+
+
+if __name__ == '__main__':
+
+    test_vote()
