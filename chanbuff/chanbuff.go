@@ -21,6 +21,60 @@ type MessageRequest struct {
 const MaxBytes = 800
 const MaxMessages = 500
 
+func SendDataChannel(data []Data) {
+
+	requests := make(chan *MessageRequest)
+	done := make(chan bool)
+
+	go func() {
+
+		for {
+
+			request, more := <-requests
+
+			if more {
+				request.Deliver()
+			} else {
+				done <- true
+			}
+		}
+	}()
+
+	byteSize := 0
+	messageCount := 0
+	group := make([]*Message, 0)
+
+	for _, entity := range data {
+
+		message := &Message{entity.Payload()}
+		length := len(message.bytes)
+
+		if byteSize == 0 {
+
+			group = append(group, message)
+			messageCount += 1
+			byteSize = length
+		}
+
+		if byteSize > MaxBytes*1024 || messageCount > MaxMessages {
+
+			requests <- &MessageRequest{group}
+			messageCount = 0
+			byteSize = 0
+
+			group = append(group, message)
+		}
+
+		group = append(group, message)
+		messageCount += 1
+		byteSize += length
+
+	}
+
+	requests <- &MessageRequest{group}
+	close(requests)
+}
+
 func SendDataLock(data []Data) {
 
 	requests := MakeRequestsLock(data)
@@ -63,7 +117,6 @@ func MakeRequestsLock(data []Data) []*MessageRequest {
 		}
 
 		if byteSize > MaxBytes*1024 || messageCount > MaxMessages {
-			//fmt.Println("other size", byteSize, "count", messageCount)
 			var request = &MessageRequest{group}
 			requests = append(requests, request)
 			group = append(group, message)
