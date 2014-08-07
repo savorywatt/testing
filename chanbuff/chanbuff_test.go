@@ -12,6 +12,8 @@ var tests = []ShardTest{
 	ShardTest{10, 100, 1},
 	ShardTest{800, 100, 2},
 	ShardTest{90, 10000, 2},
+	ShardTest{90, 10000, 2},
+	ShardTest{8100, 100, 17},
 }
 
 func TestMakeRequestsLock(t *testing.T) {
