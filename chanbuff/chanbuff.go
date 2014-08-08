@@ -51,6 +51,8 @@ func SendDataChannel(data []Data) {
 
 			if more {
 				request.Deliver()
+
+				fmt.Println("Messages", len(request.messages))
 				for _, message := range request.messages {
 					messagePool.Put(message)
 					count += 1
@@ -67,6 +69,8 @@ func SendDataChannel(data []Data) {
 	byteSize := 0
 	messageCount := 0
 	group := make([]*Message, 0)
+
+	fmt.Println("Entities:", len(data))
 
 	for _, entity := range data {
 
