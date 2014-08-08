@@ -47,7 +47,7 @@ func genData(amount int, size int) []Data {
 
 }
 func BenchmarkChannel(b *testing.B) {
-	data := genData(10000, 10000)
+	data := genData(100, 10000)
 
 	for i := 0; i < b.N; i++ {
 
@@ -55,7 +55,7 @@ func BenchmarkChannel(b *testing.B) {
 	}
 }
 func BenchmarkLock(b *testing.B) {
-	data := genData(10000, 10000)
+	data := genData(100, 10000)
 
 	for i := 0; i < b.N; i++ {
 
