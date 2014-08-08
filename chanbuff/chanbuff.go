@@ -1,6 +1,10 @@
 package chanbuff
 
-import "sync"
+import (
+	"fmt"
+	"strconv"
+	"sync"
+)
 
 type Data struct {
 	bytes []byte
@@ -26,15 +30,35 @@ func SendDataChannel(data []Data) {
 	requests := make(chan *MessageRequest)
 	done := make(chan bool)
 
+	requestPool := sync.Pool{
+		New: func() interface{} {
+			return NewMessageRequest()
+		},
+	}
+
+	messagePool := sync.Pool{
+		New: func() interface{} {
+			return NewMessage()
+		},
+	}
+
 	go func() {
 
+		count := 0
 		for {
 
 			request, more := <-requests
 
 			if more {
 				request.Deliver()
+				for _, message := range request.messages {
+					messagePool.Put(message)
+					count += 1
+				}
+				requestPool.Put(request)
+
 			} else {
+				fmt.Println("Sent Messages:", strconv.Itoa(count))
 				done <- true
 			}
 		}
@@ -46,7 +70,9 @@ func SendDataChannel(data []Data) {
 
 	for _, entity := range data {
 
-		message := &Message{entity.Payload()}
+		//		message := &Message{entity.Payload()}
+		message := messagePool.Get().(*Message)
+		message.bytes = entity.Payload()
 		length := len(message.bytes)
 
 		if byteSize == 0 {
@@ -58,11 +84,16 @@ func SendDataChannel(data []Data) {
 
 		if byteSize > MaxBytes*1024 || messageCount > MaxMessages {
 
-			requests <- &MessageRequest{group}
-			messageCount = 0
-			byteSize = 0
+			request := requestPool.Get().(*MessageRequest)
 
+			request.messages = group
+			requests <- request
+			//			requests <- &MessageRequest{group}
+
+			group = group[:0]
 			group = append(group, message)
+			messageCount = 1
+			byteSize = length
 		}
 
 		group = append(group, message)
@@ -116,12 +147,15 @@ func MakeRequestsLock(data []Data) []*MessageRequest {
 			byteSize = length
 		}
 
-		if byteSize > MaxBytes*1024 || messageCount > MaxMessages {
+		if byteSize+length > MaxBytes*1024 || messageCount > MaxMessages {
 			var request = &MessageRequest{group}
 			requests = append(requests, request)
+
+			group = group[:0]
 			group = append(group, message)
-			messageCount = 0
-			byteSize = 0
+			messageCount = 1
+			byteSize = length
+
 		}
 
 		group = append(group, message)
@@ -143,5 +177,17 @@ func (self *Data) Payload() []byte {
 }
 
 func (self *MessageRequest) Deliver() {
+
+}
+
+func NewMessageRequest() *MessageRequest {
+
+	return &MessageRequest{}
+
+}
+
+func NewMessage() *Message {
+
+	return &Message{}
 
 }

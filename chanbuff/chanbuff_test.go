@@ -34,6 +34,13 @@ func TestMakeRequestsLock(t *testing.T) {
 	}
 }
 
+func TestSendDataChannel(t *testing.T) {
+	data := genData(100, 10000)
+
+	SendDataChannel(data)
+
+}
+
 func genData(amount int, size int) []Data {
 	var data []Data
 
@@ -48,6 +55,7 @@ func genData(amount int, size int) []Data {
 }
 func BenchmarkChannel(b *testing.B) {
 	data := genData(100, 10000)
+	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
 
@@ -56,9 +64,12 @@ func BenchmarkChannel(b *testing.B) {
 }
 func BenchmarkLock(b *testing.B) {
 	data := genData(100, 10000)
+	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
 
-		SendDataLock(data)
-	}
+			SendDataLock(data)
+		}
+	})
 }
